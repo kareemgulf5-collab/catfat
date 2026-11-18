@@ -20,16 +20,19 @@ const fmtDate = s => s ? new Date(s + 'T00:00:00').toLocaleDateString('en-GB', {
 const fmtStamp = v => { const ms = tsMs(v); return ms ? new Date(ms).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'; };
 
 export function calc(items, discPct) {
-  let subtotal = 0, discountable = 0, totalQty = 0;
+  let subtotal = 0, marked = 0, totalQty = 0;
+  const anyMarked = items.some(it => it.onDisc);
   for (const it of items) {
     const line = (parseInt(it.qty) || 0) * num(it.price);
     subtotal += line; totalQty += parseInt(it.qty) || 0;
-    if (it.onDisc) discountable += line;
+    if (it.onDisc) marked += line;
   }
+  // no product marked → the discount applies to the whole invoice
+  const discountable = anyMarked ? marked : subtotal;
   const pct = Math.min(Math.max(num(discPct), 0), 100);
   const discAmt = discountable * pct / 100;
   const r2 = n => Math.round(n * 100) / 100;
-  return { subtotal: r2(subtotal), discountable: r2(discountable), discAmt: r2(discAmt), total: r2(subtotal - discAmt), totalQty, pct };
+  return { subtotal: r2(subtotal), discountable: r2(discountable), discAmt: r2(discAmt), total: r2(subtotal - discAmt), totalQty, pct, scope: anyMarked ? 'marked' : 'all' };
 }
 
 /* catalog → invoice line */
@@ -325,7 +328,7 @@ function shareHTML(i) {
 }
 function totalsHTML(c) {
   return `<span>${t('subtotal')}: <b class="num">${usd(c.subtotal)}</b></span>
-    ${c.pct > 0 && c.discountable > 0 ? `<span class="neg">${t('discount')}: <b class="num">−${usd(c.discAmt)}</b></span>` : ''}
+    ${c.pct > 0 && c.discountable > 0 ? `<span class="neg">${t('discount')} ${c.pct}% ${t(c.scope === 'marked' ? 'discMarked' : 'discAll')}: <b class="num">−${usd(c.discAmt)}</b></span>` : ''}
     <span class="grand">${t('total')}: <b class="num">${usd(c.total)}</b></span>`;
 }
 function itemsHTML() {
@@ -440,7 +443,9 @@ function invoiceDocHTML(e) {
       <td>${esc(it.pack) || '—'}</td><td>${esc(it.upc) || '—'}</td><td>${qty || '—'}</td>
       <td>${price > 0 ? '$' + price.toFixed(2) : '—'}</td><td>${line > 0 ? usd(line) : '—'}</td></tr>`;
   }).join('');
-  const discRow = c.pct > 0 && c.discountable > 0 ? `<tr class="d-discrow"><td colspan="6">Discount (${c.pct}%) on marked items / خصم على المنتجات المحددة</td><td>−${usd(c.discAmt)}</td></tr>` : '';
+  const discRow = c.pct > 0 && c.discountable > 0 ? `<tr class="d-discrow"><td colspan="6">${c.scope === 'marked'
+    ? `Discount (${c.pct}%) on marked items / خصم على المنتجات المحددة`
+    : `Discount (${c.pct}%) / خصم`}</td><td>−${usd(c.discAmt)}</td></tr>` : '';
   const cell = (lbl, v, big) => `<div class="d-cell"><div class="d-lbl">${lbl}</div><div class="d-val${big ? ' big' : ''}">${esc(v) || '—'}</div></div>`;
   return `
   <div class="d-top"><div class="d-addr">
