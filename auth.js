@@ -7,7 +7,7 @@ import {
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { firebaseConfig, EMAIL_DOMAIN, ADMIN_USERNAME } from './firebase-config.js';
+import { firebaseConfig, EMAIL_DOMAIN, ADMIN_USERNAME, ADMIN_EMAILS } from './firebase-config.js';
 
 export const app = initializeApp(firebaseConfig);
 export const fbAuth = getAuth(app);
@@ -16,7 +16,6 @@ setPersistence(fbAuth, browserLocalPersistence).catch(() => {});
 
 export const USERNAME_RE = /^[a-z0-9._-]{3,20}$/;
 export const toEmail = u => `${String(u).trim().toLowerCase()}@${EMAIL_DOMAIN}`;
-const ADMIN_EMAIL = toEmail(ADMIN_USERNAME);
 
 /** Current session: { ready, user, profile } — profile = users/{uid} doc. */
 export const auth = { ready: false, user: null, profile: null, error: null };
@@ -51,7 +50,7 @@ async function loadOrBootstrapProfile(user) {
   const snap = await getDoc(ref);
   if (snap.exists()) return { uid: user.uid, ...snap.data() };
   // First sign-in of the bootstrap admin: create its profile.
-  if (user.email === ADMIN_EMAIL) {
+  if (ADMIN_EMAILS.includes(String(user.email).toLowerCase())) {
     const profile = { username: ADMIN_USERNAME, name: 'Admin', role: 'admin', active: true, createdAt: serverTimestamp() };
     await setDoc(ref, profile);
     return { uid: user.uid, ...profile };
@@ -61,12 +60,18 @@ async function loadOrBootstrapProfile(user) {
 
 export async function login(username, password) {
   const u = String(username).trim().toLowerCase();
-  if (!USERNAME_RE.test(u)) throw codeErr('loginErr');
+  // accept "admin" or the full e-mail "admin@egygulf.com"
+  const email = u.includes('@') ? u : (USERNAME_RE.test(u) ? toEmail(u) : null);
+  if (!email || !password) throw codeErr('loginErr');
   try {
-    await signInWithEmailAndPassword(fbAuth, toEmail(u), password);
+    await signInWithEmailAndPassword(fbAuth, email, password);
   } catch (e) {
     if (e.code === 'auth/too-many-requests') throw codeErr('loginTooMany');
     if (e.code === 'auth/network-request-failed') throw codeErr('errOffline');
+    if (e.code === 'auth/unauthorized-domain') throw codeErr('loginDomain');
+    if (e.code === 'auth/operation-not-allowed') throw codeErr('loginDisabledMethod');
+    if (e.code === 'auth/invalid-api-key' || e.code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') throw codeErr('loginConfig');
+    console.error('login failed:', e.code, e.message);
     throw codeErr('loginErr');
   }
 }
