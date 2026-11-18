@@ -8,7 +8,9 @@ export const firebaseConfig = {
   appId: "1:968528715655:web:5bd376beb2adea03d77d22",
 };
 
-// Usernames are mapped to internal e-mails: "<username>@egygulf.app".
-export const EMAIL_DOMAIN = 'egygulf.app';
+// Usernames are mapped to internal e-mails: "<username>@egygulf.com" (users can also type the full e-mail).
+export const EMAIL_DOMAIN = 'egygulf.com';
 // The first admin. Create this user once in Firebase Console → Authentication.
 export const ADMIN_USERNAME = 'admin';
+// E-mails accepted as the first admin (whichever one was created in the console).
+export const ADMIN_EMAILS = ['admin@egygulf.com', 'admin@egygulf.app'];
