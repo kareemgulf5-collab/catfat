@@ -539,3 +539,9 @@ body.in-app .wrap{max-width:none}
 .ed-preview .inv{width:760px;min-width:760px}
 .ed-preview .inv-scale{overflow:hidden}
 @media print{.ed-preview .inv{zoom:1!important;width:auto;min-width:0}}
+
+/* sales & social (internal) */
+.team-card{border-color:#E9DDBF;background:#FFFDF7}
+.internal{font-size:12px;font-weight:600;color:var(--saffron-ink);background:#FFF4DE;padding:2px 10px;border-radius:999px}
+.team-cell span{display:block;font-weight:600}
+.team-cell small{display:block;color:var(--muted);font-size:12.5px}
