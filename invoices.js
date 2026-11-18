@@ -7,7 +7,7 @@ import { t, esc, go, route } from './app.js';
 import { CONTAINERS, DEFAULT_MARGIN, loadPlan, fitQuantities, parseBox, boxCbm } from './container.js';
 
 /* ═════════════ helpers ═════════════ */
-const FIELDS = ['invDate', 'portLoad', 'port', 'company', 'country', 'email', 'phone', 'address', 'website', 'notes', 'disc', 'ctype', 'ccount', 'cmargin'];
+const FIELDS = ['invDate', 'portLoad', 'port', 'company', 'country', 'email', 'phone', 'address', 'website', 'notes', 'disc', 'ctype', 'ccount', 'cmargin', 'salesName', 'socialName'];
 const today = () => new Date().toISOString().slice(0, 10);
 const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
 const usd = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -181,16 +181,17 @@ function renderList() {
   }
   const q = list.q.trim().toLowerCase();
   const rows = list.rows.filter(r => (list.owner === 'all' || r.ownerUid === list.owner)
-    && (!q || [r.number, r.company, r.country, r.ownerName, r.ownerUsername].join(' ').toLowerCase().includes(q)));
+    && (!q || [r.number, r.company, r.country, r.ownerName, r.ownerUsername, r.salesName, r.socialName].join(' ').toLowerCase().includes(q)));
   if (!list.rows.length) { box.innerHTML = `<div class="empty-card"><p>${t('noInvoices')}</p><button type="button" class="btn btn-saffron" data-go="invoice/new">${t('newInvoice')}</button></div>`; return; }
   const admin = isAdmin();
   const sum = rows.reduce((s, r) => s + (r.total || 0), 0);
   box.innerHTML = `<div class="table-wrap"><table class="inv-list">
-    <thead><tr><th>${t('thNumber')}</th><th>${t('thDate')}</th><th>${t('thCustomer')}</th><th>${t('thCountry')}</th><th>${t('thLoad')}</th>
+    <thead><tr><th>${t('thNumber')}</th><th>${t('thDate')}</th><th>${t('thCustomer')}</th><th>${t('thCountry')}</th><th>${t('thTeam')}</th><th>${t('thLoad')}</th>
       ${admin ? `<th>${t('thBy')}</th>` : ''}<th class="end">${t('thTotal')}</th><th>${t('thUpdated')}</th><th class="end"><span class="sr">actions</span></th></tr></thead>
     <tbody>${rows.length ? rows.map(r => `<tr class="item" data-go="invoice/${esc(r.id)}" tabindex="0">
       <td><b class="num">${esc(r.number)}</b></td><td><span class="num">${fmtDate(r.invDate)}</span></td>
       <td class="wrapcell">${esc(r.company) || '—'}</td><td>${esc(r.country) || '—'}</td>
+      <td class="team-cell">${r.salesName || r.socialName ? `${r.salesName ? `<span>${esc(r.salesName)}</span>` : ''}${r.socialName ? `<small>${esc(r.socialName)}</small>` : ''}` : '—'}</td>
       <td>${r.ctype && CONTAINERS[r.ctype] ? `<span class="num">${esc(r.ccount)} × ${t('c' + r.ctype + 's')}</span>${r.loadFill != null ? ` <small class="${r.loadFill > 100 ? 'neg' : 'muted'}">${r.loadFill}%</small>` : ''}` : '—'}</td>
       ${admin ? `<td><span class="who">${esc(r.ownerName || r.ownerUsername)}</span></td>` : ''}
       <td class="price end"><span class="num">${usd(r.total || 0)}</span></td>
@@ -198,8 +199,8 @@ function renderList() {
       <td class="end"><div class="row-acts">
         <button type="button" class="mini" data-act="dup" data-id="${esc(r.id)}">${t('duplicate')}</button>
         <button type="button" class="mini danger" data-act="del" data-id="${esc(r.id)}">${t('del')}</button></div></td>
-    </tr>`).join('') : `<tr><td colspan="9" class="empty">${t('noResults')}</td></tr>`}</tbody>
-    <tfoot><tr><td colspan="${admin ? 6 : 5}">${rows.length} ${t('invCount')}</td><td class="price end"><span class="num">${usd(sum)}</span></td><td colspan="2"></td></tr></tfoot>
+    </tr>`).join('') : `<tr><td colspan="10" class="empty">${t('noResults')}</td></tr>`}</tbody>
+    <tfoot><tr><td colspan="${admin ? 7 : 6}">${rows.length} ${t('invCount')}</td><td class="price end"><span class="num">${usd(sum)}</span></td><td colspan="2"></td></tr></tfoot>
   </table></div>`;
 }
 async function loadList() {
@@ -253,6 +254,12 @@ function editorHTML() {
       <button type="button" role="tab" data-tab="preview" aria-selected="false">${t('tabPreview')}</button></div>
     <div class="wrap ed-grid" data-show="form">
       <div class="ed-form">
+        <div class="card team-card"><div class="card-h-row"><h3 class="card-h">${t('secTeam')}</h3><span class="internal">${t('internalOnly')}</span></div>
+          <div class="g2">
+            <label class="fld"><span>${t('f_salesName')}</span><input data-f="salesName" list="dl-sales" value="${esc(e.f.salesName)}" maxlength="60" autocomplete="off"></label>
+            <label class="fld"><span>${t('f_socialName')}</span><input data-f="socialName" list="dl-social" value="${esc(e.f.socialName)}" maxlength="60" autocomplete="off"></label>
+          </div>
+          <datalist id="dl-sales">${teamOptions('salesName')}</datalist><datalist id="dl-social">${teamOptions('socialName')}</datalist></div>
         <div class="card"><h3 class="card-h">${t('secDetails')}</h3>
           <div class="g2">${fld('invDate', 'date')}${fld('portLoad', 'text', 'Alexandria Port')}</div>
           <div class="g2">${fld('port', 'text', 'Jebel Ali, UAE')}</div></div>
@@ -269,6 +276,10 @@ function editorHTML() {
       </div>
       <div class="ed-preview"><div class="inv-scale"><div id="invoice-doc" class="inv">${invoiceDocHTML(e)}</div></div></div>
     </div>`;
+}
+function teamOptions(k) {
+  const names = [...new Set((list.rows || []).map(r => String(r[k] || '').trim()).filter(Boolean))].sort();
+  return names.map(n => `<option value="${esc(n)}"></option>`).join('');
 }
 function shipCardHTML() {
   const f = ed.f, on = CONTAINERS[f.ctype];
@@ -543,7 +554,14 @@ export function mountInvoiceView(r) {
   if (!auth.ready || !isIn()) return;
   if (r.view === 'invoices') { if (list.rows) renderList(); loadList(); }
   if (r.view === 'invoice' && r.a !== 'new' && (!ed || ed.number !== r.a)) loadEditor(r.a);
-  if (r.view === 'invoice') requestAnimationFrame(fitPreview);
+  if (r.view === 'invoice') {
+    requestAnimationFrame(fitPreview);
+    if (!list.rows) fetchInvoices().then(rows => {
+      list.rows = rows;
+      const a = document.getElementById('dl-sales'), b = document.getElementById('dl-social');
+      if (a) a.innerHTML = teamOptions('salesName'); if (b) b.innerHTML = teamOptions('socialName');
+    }).catch(() => {});
+  }
   if (r.view === 'users' && isAdmin()) loadUsers();
 }
 export function confirmLeave(nextHash) {
