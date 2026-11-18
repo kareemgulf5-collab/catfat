@@ -341,6 +341,13 @@ function itemsHTML() {
       <button type="button" class="disc-t ${it.onDisc ? 'on' : ''}" data-act="disc" data-i="${i}">${it.onDisc ? t('onDisc') : t('applyDisc')}</button>
     </div></div>`).join('');
 }
+/* scale the A4 preview to whatever width the column has */
+export function fitPreview() {
+  const box = document.querySelector('.ed-preview .inv-scale'), inv = box && box.querySelector('.inv');
+  if (!box || !inv || !box.clientWidth) return;
+  inv.style.zoom = Math.min(1.5, box.clientWidth / 760);
+}
+window.addEventListener('resize', fitPreview);
 function refresh(parts = {}) {
   if (!ed) return;
   const c = calc(ed.items, ed.f.disc);
@@ -359,7 +366,7 @@ async function loadEditor(id) {
     if (route().view !== 'invoice' || route().a !== id) return;
     if (!d) { document.getElementById('editor').innerHTML = `<div class="wrap section"><p class="form-err">${t('notFound')}</p><button class="btn btn-line" data-go="invoices">${t('backToList')}</button></div>`; return; }
     ed = fromDoc(d);
-    document.getElementById('editor').innerHTML = editorHTML();
+    document.getElementById('editor').innerHTML = editorHTML(); fitPreview();
   } catch (e) {
     console.error(e);
     document.getElementById('editor').innerHTML = `<div class="wrap section"><p class="form-err">${esc(errMsg(e))}</p><button class="btn btn-line" data-go="invoices">${t('backToList')}</button></div>`;
@@ -379,7 +386,7 @@ async function doSave() {
       list.rows = null;
       toast(t('savedAs', { n: number }));
       history.replaceState(null, '', `#/invoice/${number}`);
-      document.getElementById('editor').innerHTML = editorHTML();
+      document.getElementById('editor').innerHTML = editorHTML(); fitPreview();
     }
   } catch (e) { console.error(e); toast(errMsg(e), 'err'); }
   finally { ed.saving = false; const b2 = document.getElementById('saveBtn'); if (b2) { b2.disabled = false; b2.textContent = t('save'); } }
@@ -536,6 +543,7 @@ export function mountInvoiceView(r) {
   if (!auth.ready || !isIn()) return;
   if (r.view === 'invoices') { if (list.rows) renderList(); loadList(); }
   if (r.view === 'invoice' && r.a !== 'new' && (!ed || ed.number !== r.a)) loadEditor(r.a);
+  if (r.view === 'invoice') requestAnimationFrame(fitPreview);
   if (r.view === 'users' && isAdmin()) loadUsers();
 }
 export function confirmLeave(nextHash) {
@@ -554,7 +562,7 @@ export function invoiceClick(e) {
   const tab = e.target.closest('[data-tab]');
   if (tab) {
     document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b === tab)));
-    const g = document.querySelector('.ed-grid'); if (g) g.dataset.show = tab.dataset.tab; return true;
+    const g = document.querySelector('.ed-grid'); if (g) g.dataset.show = tab.dataset.tab; fitPreview(); return true;
   }
   if (!a) return false;
   const i = +a.dataset.i, act = a.dataset.act;
