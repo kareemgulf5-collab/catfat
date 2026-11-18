@@ -112,6 +112,8 @@ Object.assign(TR.ar, {"loginDomain": "الدومين ده مش متضاف في F
 Object.assign(TR.en, {"loginDomain": "This domain is not authorized in Firebase. Add it under Authentication → Settings → Authorized domains.", "loginDisabledMethod": "Email/Password sign-in is not enabled in Firebase (Authentication → Sign-in method).", "loginConfig": "The Firebase settings in firebase-config.js are wrong."});
 Object.assign(TR.ar, {"secTeam": "السيلز والسوشيال", "internalOnly": "للسيستم بس، مش بيتطبع", "f_salesName": "اسم السيلز", "f_socialName": "اسم السوشيال", "thTeam": "السيلز / السوشيال", "invSearch": "ابحث برقم الفاتورة أو العميل أو البلد أو السيلز"});
 Object.assign(TR.en, {"secTeam": "Sales & social", "internalOnly": "Internal — not printed", "f_salesName": "Sales name", "f_socialName": "Social name", "thTeam": "Sales / social", "invSearch": "Search by number, customer, country or sales"});
+Object.assign(TR.ar, {"discAll": "على كل الفاتورة", "discMarked": "على المنتجات المعلّمة", "applyDisc": "+ خصم على ده بس", "onDisc": "عليه خصم ✓"});
+Object.assign(TR.en, {"discAll": "on whole invoice", "discMarked": "on marked products", "applyDisc": "+ Discount this only", "onDisc": "Discounted ✓"});
 let lang = 'ar';
 try{ const s = localStorage.getItem('eg-lang'); if(s==='en'||s==='ar'||s==='fr') lang = s; }catch(e){}
 export const t = (k, vars={}) => String(TR[lang][k] ?? TR.en[k] ?? TR.ar[k] ?? k).replace(/\{(\w+)\}/g,(_,v)=>vars[v] ?? '');
